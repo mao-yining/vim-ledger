@@ -367,10 +367,13 @@ function! s:autocomplete_account_or_payee(argument_lead, command_line, cursor_po
 endfunction
 
 function! s:ledger_complete(argument_lead, command_line, cursor_position)
-  if len(split(strpart(a:command_line, 0, a:cursor_position), '\s\+', 1)) == 2
-    return "balance\nequity\nregister\nprint\ncsv\nconvert\nlisp\npricemap\nxml\n"
-  else
+  let parts = split(strpart(a:command_line, 0, a:cursor_position), '\s\+', 1)
+  if len(parts) == 2
+    return "accounts\nbalance\nbudget\ncleared\ncommodities\nconvert\ncsv\nentry\nemacs\nequity\npayees\npricemap\nprices\npricedb\nprint\npush\npop\nregister\nselect\nsource\nstats\nxml\n"
+  elseif len(parts) == 3 && parts[1] =~# 'accounts\|balance\|budget\|cleared\|commodities\|csv\|equity\|payees\|prices\|pricedb\|print\|register\|stats\|xml'
     return s:autocomplete_account_or_payee(a:argument_lead, a:command_line, a:cursor_position)
+  else
+    return ""
   endif
 endfunction
 
