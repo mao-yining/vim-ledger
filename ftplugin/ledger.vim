@@ -351,6 +351,7 @@ augroup refresh_autocomplete_account_or_payee_cache
   autocmd! CmdlineLeave * if exists('s:accounts_cache') | unlet s:accounts_cache | endif
   autocmd! CmdlineLeave * if exists('s:payees_cache')   | unlet s:payees_cache   | endif
 augroup END
+
 function! s:autocomplete_account_or_payee(argument_lead, command_line, cursor_position)
   if a:argument_lead =~# '^@'
     if !exists('s:payees_cache')
@@ -365,6 +366,14 @@ function! s:autocomplete_account_or_payee(argument_lead, command_line, cursor_po
   endif
 endfunction
 
+function! s:ledger_complete(argument_lead, command_line, cursor_position)
+  if len(split(strpart(a:command_line, 0, a:cursor_position), '\s\+', 1)) == 2
+    return "balance\nequity\nregister\nprint\ncsv\nconvert\nlisp\npricemap\nxml\n"
+  else
+    return s:autocomplete_account_or_payee(a:argument_lead, a:command_line, a:cursor_position)
+  endif
+endfunction
+
 function! s:reconcile(file, account)
   let l:amount = input('Target amount' . (empty(b:ledger_default_commodity) ? ': ' : ' (' . b:ledger_default_commodity . '): '))
   call ledger#reconcile(a:file, a:account, str2float(l:amount))
@@ -374,7 +383,7 @@ endfunction
 command! -buffer -nargs=? -complete=custom,<SID>autocomplete_account_or_payee
       \ Balance call ledger#show_balance(b:ledger_main, <q-args>)
 
-command! -buffer -nargs=+ -complete=custom,<SID>autocomplete_account_or_payee
+command! -buffer -nargs=+ -complete=custom,<SID>ledger_complete
       \ Ledger call ledger#output(ledger#report(b:ledger_main, <q-args>))
 
 command! -buffer -range LedgerAlign <line1>,<line2>call ledger#align_commodity()
