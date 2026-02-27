@@ -346,16 +346,22 @@ function! s:count_expression(text, expression)
   return len(split(a:text, a:expression, 1))-1
 endfunction
 
+augroup refresh_autocomplete_account_or_payee_cache
+  au!
+  autocmd! CmdlineLeave * if exists('s:accounts_cache') | unlet s:accounts_cache | endif
+  autocmd! CmdlineLeave * if exists('s:payees_cache')   | unlet s:payees_cache   | endif
+augroup END
 function! s:autocomplete_account_or_payee(argument_lead, command_line, cursor_position)
   if a:argument_lead =~# '^@'
-    let payees = s:get_descriptions_list()
-    let pattern = strpart(a:argument_lead, 1)
-    return map(filter(payees, "v:val =~? '" . pattern . "' && v:val !~? '^Warning: '"),
-             \ '"@" . escape(v:val, " ")')
+    if !exists('s:payees_cache')
+      let s:payees_cache = join(map(filter(s:get_descriptions_list(), "v:val !~? '^Warning: '"), '"@" .. v:val'), "\n")
+    endif
+    return s:payees_cache
   else
-    let accounts = s:get_accounts_list()
-    return map(filter(accounts, "v:val =~? '" . a:argument_lead . "' && v:val !~? '^Warning: '"),
-             \ 'escape(v:val, " ")')
+    if !exists('s:accounts_cache')
+      let s:accounts_cache = join(filter(s:get_accounts_list(), "v:val !~? '^Warning: '"), "\n")
+    endif
+    return s:accounts_cache
   endif
 endfunction
 
@@ -365,18 +371,18 @@ function! s:reconcile(file, account)
 endfunction
 
 " Commands
-command! -buffer -nargs=? -complete=customlist,<SID>autocomplete_account_or_payee
+command! -buffer -nargs=? -complete=custom,<SID>autocomplete_account_or_payee
       \ Balance call ledger#show_balance(b:ledger_main, <q-args>)
 
-command! -buffer -nargs=+ -complete=customlist,<SID>autocomplete_account_or_payee
+command! -buffer -nargs=+ -complete=custom,<SID>autocomplete_account_or_payee
       \ Ledger call ledger#output(ledger#report(b:ledger_main, <q-args>))
 
 command! -buffer -range LedgerAlign <line1>,<line2>call ledger#align_commodity()
 
 command! -buffer LedgerAlignBuffer call ledger#align_commodity_buffer()
 
-command! -buffer -nargs=1 -complete=customlist,<SID>autocomplete_account_or_payee
+command! -buffer -nargs=1 -complete=custom,<SID>autocomplete_account_or_payee
       \ Reconcile call <SID>reconcile(b:ledger_main, <q-args>)
 
-command! -buffer -complete=customlist,<SID>autocomplete_account_or_payee -nargs=*
+command! -buffer -complete=custom,<SID>autocomplete_account_or_payee -nargs=*
       \ Register call ledger#register(b:ledger_main, <q-args>)
